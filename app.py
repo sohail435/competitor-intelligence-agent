@@ -3,7 +3,9 @@ import os
 import json
 from google import genai
 import trafilatura
+import streamlit as st
 
+# Existing analyze_competitor function
 def analyze_competitor(competitor_name):
     # 1. Initialize the modern Gemini Client using the environment variable
     GOOGLE_API_KEY = os.environ.get('GEMINI_KEY')
@@ -58,8 +60,26 @@ def analyze_competitor(competitor_name):
     except Exception as e:
         return {"error": "Could not parse JSON", "raw_output": response.text}
 
-if __name__ == '__main__':
-    # Example usage (will only run if app.py is executed directly)
-    print("Running example for Apple Inc.")
-    result = analyze_competitor('Apple Inc.')
-    print(json.dumps(result, indent=2))
+
+# --- Streamlit Web Interface ---
+st.set_page_config(page_title="Competitor Intelligence Agent", layout="centered")
+
+st.title("Competitor Intelligence Agent")
+st.write("Enter a competitor name below to get an analysis of their brands, marketing campaigns, and features/pricing.")
+
+competitor_name = st.text_input("Enter Competitor Name:", placeholder="e.g., Apple Inc., Samsung")
+
+if st.button("Analyze"):
+    if competitor_name:
+        with st.spinner(f"Analyzing {competitor_name}..."):
+            analysis_result = analyze_competitor(competitor_name)
+
+        st.subheader(f"Analysis for {competitor_name}")
+        if "error" in analysis_result:
+            st.error(f"Error: {analysis_result['error']}")
+            if "raw_output" in analysis_result:
+                st.code(analysis_result['raw_output'], language='json')
+        else:
+            st.json(analysis_result)
+    else:
+        st.warning("Please enter a competitor name to analyze.")
