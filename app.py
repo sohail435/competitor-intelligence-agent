@@ -5,9 +5,8 @@ from google import genai
 import trafilatura
 import streamlit as st
 
-# Existing analyze_competitor function
+# Existing analyze_competitor function (copied here for self-contained app.py)
 def analyze_competitor(competitor_name):
-    # 1. Initialize the modern Gemini Client using the environment variable
     GOOGLE_API_KEY = os.environ.get('GEMINI_KEY')
 
     if not GOOGLE_API_KEY:
@@ -15,25 +14,25 @@ def analyze_competitor(competitor_name):
 
     client = genai.Client(api_key=GOOGLE_API_KEY)
 
-    # 2. Define the research categories
     research_targets = [
         "main brand names and sub-brands",
         "recent marketing campaigns",
         "pricing plans and key product features"
     ]
 
-    # Accumulator for our text data
     combined_text = ""
-
-    # 3. Gather raw text data
-    # (Using Wikipedia as a reliable fallback for our text extraction)
     for target in research_targets:
         url = f"https://en.wikipedia.org/wiki/{competitor_name.replace(' ', '_')}"
         downloaded = trafilatura.fetch_url(url)
         if downloaded:
             combined_text += trafilatura.extract(downloaded) or ""
+            if len(combined_text) > 8000: 
+                combined_text = combined_text[:8000]
+                break
 
-    # 4. Construct the structured prompt
+    if not combined_text:
+        return {"error": f"Could not extract any meaningful text for {competitor_name} from Wikipedia."}
+
     prompt = f"""
     You are an expert market research analyst.
     Analyze the following raw web data about {competitor_name} and extract:
@@ -45,20 +44,27 @@ def analyze_competitor(competitor_name):
     "brands", "campaigns", "features_pricing".
 
     Raw Web Data:
-    {combined_text[:4000]}
+    {combined_text}
     """
-
-    # 5. Generate content using the updated SDK syntax
-    response = client.models.generate_content(
-        model='gemini-1.5-flash',
-        contents=prompt,
-    )
-
-    # 6. Parse the text response into a Python dictionary
     try:
-        return json.loads(response.text)
+        response = client.models.generate_content(
+            model='gemini-1.5-flash',
+            contents=prompt,
+            safety_settings={
+                'HARASSMENT': 'BLOCK_NONE',
+                'HATE': 'BLOCK_NONE',
+                'SEXUAL': 'BLOCK_NONE',
+                'DANGEROUS': 'BLOCK_NONE',
+            }
+        )
+        response_text = response.text
     except Exception as e:
-        return {"error": "Could not parse JSON", "raw_output": response.text}
+        return {"error": f"Gemini API call failed: {e}"}
+
+    try:
+        return json.loads(response_text)
+    except Exception as e:
+        return {"error": "Could not parse JSON from API response", "raw_output": response_text, "exception": str(e)}
 
 
 # --- Streamlit Web Interface ---
@@ -79,6 +85,8 @@ if st.button("Analyze"):
             st.error(f"Error: {analysis_result['error']}")
             if "raw_output" in analysis_result:
                 st.code(analysis_result['raw_output'], language='json')
+            if "exception" in analysis_result:
+                st.exception(analysis_result['exception'])
         else:
             st.json(analysis_result)
     else:
