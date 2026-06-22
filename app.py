@@ -5,11 +5,22 @@ from google import genai
 from google.genai import types
 import trafilatura
 import streamlit as st
-from google.colab import userdata
+
+
+def get_secret(name):
+    value = os.environ.get(name)
+    if value:
+        return value
+
+    try:
+        return st.secrets[name]
+    except (FileNotFoundError, KeyError):
+        return ""
+
 
 def fetch_tavily_data(query):
     """Helper to fetch search results from Tavily API."""
-    api_key = os.environ.get('TAVILY_API_KEY')
+    api_key = get_secret('TAVILY_API_KEY')
     if not api_key: return ""
     
     url = "https://api.tavily.com/search"
@@ -27,7 +38,7 @@ def fetch_tavily_data(query):
         return ""
 
 def analyze_competitor(competitor_name):
-    gemini_key = os.environ.get('GEMINI_KEY')
+    gemini_key = get_secret('GEMINI_KEY')
     if not gemini_key: return {"error": "GEMINI_KEY missing"}
 
     client = genai.Client(api_key=gemini_key)
@@ -64,13 +75,18 @@ def analyze_competitor(competitor_name):
         return json.loads(response.text)
     except Exception as e: return {"error": str(e)}
 
-st.set_page_config(page_title="Competitor Agent v2.0")
-st.title("Competitor Intelligence Agent (Live Web Access)")
-name = st.text_input("Competitor Name")
-if st.button("Analyze"):
-    if name:
-        with st.spinner("Searching web and analyzing..."):
-            res = analyze_competitor(name)
-            st.json(res)
-    else:
-        st.warning("Enter a name")
+def main():
+    st.set_page_config(page_title="Competitor Agent v2.0")
+    st.title("Competitor Intelligence Agent (Live Web Access)")
+    name = st.text_input("Competitor Name")
+    if st.button("Analyze"):
+        if name:
+            with st.spinner("Searching web and analyzing..."):
+                res = analyze_competitor(name)
+                st.json(res)
+        else:
+            st.warning("Enter a name")
+
+
+if __name__ == "__main__":
+    main()
