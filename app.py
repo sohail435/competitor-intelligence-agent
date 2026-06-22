@@ -18,6 +18,59 @@ def get_secret(name):
         return ""
 
 
+def build_mock_competitor_report(competitor_name):
+    name = competitor_name.strip() or "Selected Competitor"
+
+    return {
+        "brands": [
+            {
+                "name": name,
+                "positioning": "Primary brand used for broad market visibility and customer acquisition.",
+                "sub_brands": [
+                    f"{name} Core",
+                    f"{name} Pro",
+                    f"{name} Enterprise"
+                ]
+            }
+        ],
+        "campaigns": [
+            {
+                "name": f"{name} digital awareness campaign",
+                "timeframe": "Recent 12 months (mock)",
+                "channels": ["search", "social", "content marketing"],
+                "message": "Emphasizes product reliability, speed to value, and competitive differentiation."
+            },
+            {
+                "name": f"{name} customer retention push",
+                "timeframe": "Recent 12 months (mock)",
+                "channels": ["email", "webinars", "case studies"],
+                "message": "Highlights customer outcomes, feature adoption, and upgrade paths."
+            }
+        ],
+        "features_pricing": {
+            "summary": "Mock pricing model with entry, professional, and enterprise tiers.",
+            "tiers": [
+                {
+                    "name": "Starter",
+                    "price": "$19/user/month",
+                    "features": ["basic dashboards", "standard support", "limited exports"]
+                },
+                {
+                    "name": "Professional",
+                    "price": "$49/user/month",
+                    "features": ["advanced analytics", "team workflows", "priority support"]
+                },
+                {
+                    "name": "Enterprise",
+                    "price": "custom",
+                    "features": ["SSO", "custom integrations", "dedicated account management"]
+                }
+            ]
+        },
+        "mock_notice": "Mock fallback generated because GEMINI_KEY is not configured."
+    }
+
+
 def fetch_tavily_data(query):
     """Helper to fetch search results from Tavily API."""
     api_key = get_secret('TAVILY_API_KEY')
@@ -39,7 +92,7 @@ def fetch_tavily_data(query):
 
 def analyze_competitor(competitor_name):
     gemini_key = get_secret('GEMINI_KEY')
-    if not gemini_key: return {"error": "GEMINI_KEY missing"}
+    if not gemini_key: return build_mock_competitor_report(competitor_name)
 
     client = genai.Client(api_key=gemini_key)
 
