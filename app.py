@@ -5,11 +5,75 @@ from google import genai
 from google.genai import types
 import trafilatura
 import streamlit as st
-from google.colab import userdata
+
+
+def get_secret(name):
+    value = os.environ.get(name)
+    if value:
+        return value
+
+    try:
+        return st.secrets[name]
+    except (FileNotFoundError, KeyError):
+        return ""
+
+
+def build_mock_competitor_report(competitor_name):
+    name = competitor_name.strip() or "Selected Competitor"
+
+    return {
+        "brands": [
+            {
+                "name": name,
+                "positioning": "Primary brand used for broad market visibility and customer acquisition.",
+                "sub_brands": [
+                    f"{name} Core",
+                    f"{name} Pro",
+                    f"{name} Enterprise"
+                ]
+            }
+        ],
+        "campaigns": [
+            {
+                "name": f"{name} digital awareness campaign",
+                "timeframe": "Recent 12 months (mock)",
+                "channels": ["search", "social", "content marketing"],
+                "message": "Emphasizes product reliability, speed to value, and competitive differentiation."
+            },
+            {
+                "name": f"{name} customer retention push",
+                "timeframe": "Recent 12 months (mock)",
+                "channels": ["email", "webinars", "case studies"],
+                "message": "Highlights customer outcomes, feature adoption, and upgrade paths."
+            }
+        ],
+        "features_pricing": {
+            "summary": "Mock pricing model with entry, professional, and enterprise tiers.",
+            "tiers": [
+                {
+                    "name": "Starter",
+                    "price": "$19/user/month",
+                    "features": ["basic dashboards", "standard support", "limited exports"]
+                },
+                {
+                    "name": "Professional",
+                    "price": "$49/user/month",
+                    "features": ["advanced analytics", "team workflows", "priority support"]
+                },
+                {
+                    "name": "Enterprise",
+                    "price": "custom",
+                    "features": ["SSO", "custom integrations", "dedicated account management"]
+                }
+            ]
+        },
+        "mock_notice": "Mock fallback generated because GEMINI_KEY is not configured."
+    }
+
 
 def fetch_tavily_data(query):
     """Helper to fetch search results from Tavily API."""
-    api_key = os.environ.get('TAVILY_API_KEY')
+    api_key = get_secret('TAVILY_API_KEY')
     if not api_key: return ""
     
     url = "https://api.tavily.com/search"
@@ -27,8 +91,8 @@ def fetch_tavily_data(query):
         return ""
 
 def analyze_competitor(competitor_name):
-    gemini_key = os.environ.get('GEMINI_KEY')
-    if not gemini_key: return {"error": "GEMINI_KEY missing"}
+    gemini_key = get_secret('GEMINI_KEY')
+    if not gemini_key: return build_mock_competitor_report(competitor_name)
 
     client = genai.Client(api_key=gemini_key)
 
@@ -64,13 +128,18 @@ def analyze_competitor(competitor_name):
         return json.loads(response.text)
     except Exception as e: return {"error": str(e)}
 
-st.set_page_config(page_title="Competitor Agent v2.0")
-st.title("Competitor Intelligence Agent (Live Web Access)")
-name = st.text_input("Competitor Name")
-if st.button("Analyze"):
-    if name:
-        with st.spinner("Searching web and analyzing..."):
-            res = analyze_competitor(name)
-            st.json(res)
-    else:
-        st.warning("Enter a name")
+def main():
+    st.set_page_config(page_title="Competitor Agent v2.0")
+    st.title("Competitor Intelligence Agent (Live Web Access)")
+    name = st.text_input("Competitor Name")
+    if st.button("Analyze"):
+        if name:
+            with st.spinner("Searching web and analyzing..."):
+                res = analyze_competitor(name)
+                st.json(res)
+        else:
+            st.warning("Enter a name")
+
+
+if __name__ == "__main__":
+    main()
