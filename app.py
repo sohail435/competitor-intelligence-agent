@@ -18,7 +18,7 @@ def get_secret(name):
         return ""
 
 
-def build_mock_competitor_report(competitor_name):
+def build_mock_competitor_report(competitor_name, reason="GEMINI_KEY is not configured"):
     name = competitor_name.strip() or "Selected Competitor"
 
     return {
@@ -67,8 +67,29 @@ def build_mock_competitor_report(competitor_name):
                 }
             ]
         },
-        "mock_notice": "Mock fallback generated because GEMINI_KEY is not configured."
+        "mock_notice": f"Mock fallback generated because {reason}."
     }
+
+
+def get_safety_settings():
+    return [
+        types.SafetySetting(
+            category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+            threshold=types.HarmBlockThreshold.BLOCK_NONE,
+        ),
+        types.SafetySetting(
+            category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+            threshold=types.HarmBlockThreshold.BLOCK_NONE,
+        ),
+        types.SafetySetting(
+            category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+            threshold=types.HarmBlockThreshold.BLOCK_NONE,
+        ),
+        types.SafetySetting(
+            category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+            threshold=types.HarmBlockThreshold.BLOCK_NONE,
+        ),
+    ]
 
 
 def fetch_tavily_data(query):
@@ -122,11 +143,11 @@ def analyze_competitor(competitor_name):
             model='gemini-1.5-flash',
             contents=prompt,
             config=types.GenerateContentConfig(
-                safety_settings=[types.SafetySetting(category=c, threshold='BLOCK_NONE') for c in ['HATE_SPEECH', 'HARASSMENT', 'DANGEROUS_CONTENT', 'SEXUALLY_EXPLICIT']]
+                safety_settings=get_safety_settings()
             )
         )
         return json.loads(response.text)
-    except Exception as e: return {"error": str(e)}
+    except Exception as e: return build_mock_competitor_report(competitor_name, f"Gemini analysis failed: {e}")
 
 def main():
     st.set_page_config(page_title="Competitor Agent v2.0")

@@ -13,7 +13,7 @@ This project provides a Streamlit app (`app.py`) to analyze competitor informati
 2.  **Google Gemini API Key:**
     Obtain an API key from Google AI Studio and set it as an environment variable named `GEMINI_KEY`.
     On Streamlit Community Cloud, add `GEMINI_KEY` in the app's secrets settings.
-    If `GEMINI_KEY` is not configured, the app displays a realistic mock competitor report so the UI remains usable.
+    If `GEMINI_KEY` is not configured or Gemini returns an error, the app displays a realistic mock competitor report so the UI remains usable.
 
 3.  **Optional Tavily API Key:**
     Set `TAVILY_API_KEY` as an environment variable or Streamlit secret to include live web search results.
